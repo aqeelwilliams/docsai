@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Modern Docs AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* Global reset & font */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            color: #333;
+            padding: 20px;
+        }
+
+        /* Main container */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        h2 {
+            margin-bottom: 16px;
+            color: #555;
+            font-weight: 400;
+            font-size: 1.1rem;
+        }
+
+        /* Panels with soft background */
+        .panel {
+            background: #f9fafc;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px; /* spacing between panels */
+        }
+        .panel h3 {
+            margin-bottom: 12px;
+        }
+
+        /* Extra spacing inside panels for text, buttons, etc. */
+        .panel p,
+        .panel button,
+        .panel input,
+        .panel textarea,
+        .panel label {
+            margin-bottom: 12px;
+            display: block; /* ensures vertical stacking if needed */
+        }
+
+        /* Button styles for position/purpose and feedback */
+        .button-group button,
+        #feedbackButton {
+            margin-right: 8px;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #e2e8f0; 
+            transition: background 0.2s;
+            display: inline-block;
+        }
+
+        .button-group button:hover,
+        #feedbackButton:hover {
+            background: #cbd5e1;
+        }
+
+        /* The range slider */
+        #formalitySlider {
+            margin-top: 8px; 
+            width: 100%;
+        }
+
+        #timer {
+            font-weight: 600;
+            margin-top: 10px;
+            margin-bottom: 12px;
+        }
+
+        /* Start/Stop/Retake buttons (inline-block for left-right) */
+        .recording-buttons button {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #4b9cfb; 
+            color: #fff;
+            transition: background 0.2s;
+        }
+        .recording-buttons button:hover {
+            background: #3a8ae0;
+        }
+
+        /* Transcript & summary area */
+        #transcript, #summary {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+            min-height: 40px;
+        }
+
+        #errorContainer {
+            color: red;
+            margin-top: 10px;
+        }
+
+        /* Feedback text hidden initially, single line */
+        #feedbackText {
+            display: none;
+            margin-top: 8px;
+        }
+
+        /* Summarise/Re-Summarise buttons in summary panel */
+        .summary-buttons button {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 4px;
+            background: #4b9cfb;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .summary-buttons button:hover {
+            background: #3a8ae0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>My Modern Docs AI</h1>
+    <h2>Turn your voice into structured, formal documentation with ChatGPT</h2>
+
+    <!-- 1) Position (Panel) -->
+    <div class="panel">
+        <h3>Select your position:</h3>
+        <div class="button-group" id="positionButtons">
+            <!-- Dynamically inserted position buttons (left to right) -->
+        </div>
+    </div>
+
+    <!-- 2) Purpose (Panel) -->
+    <div class="panel">
+        <h3>Select purpose for the text:</h3>
+        <div class="button-group" id="purposeButtons">
+            <!-- Dynamically inserted purpose buttons (left to right) -->
+        </div>
+    </div>
+
+    <!-- 3) Formality Slider (Panel) -->
+    <div class="panel">
+        <label for="formalitySlider"><strong>Formality</strong> (1=less, 5=more):</label>
+        <input type="range" id="formalitySlider" min="1" max="5" value="3" />
+        <span id="formalityValue">3</span>
+    </div>
+
+    <!-- 4) AUDIO RECORDING (Panel) -->
+    <div class="panel">
+        <h3>Audio Recording</h3>
+        <div class="recording-buttons">
+            <button id="startButton">Start Recording</button>
+            <button id="stopButton">Stop Recording</button>
+            <!-- Replacing Clear Transcribed Text with "Retake Recording" -->
+            <button id="retakeButton">Retake Recording</button>
+        </div>
+        <div id="timer"></div>
+        <div id="errorContainer"></div>
+    </div>
+
+    <!-- TRANSCRIBED TEXT (Panel) -->
+    <div class="panel">
+        <h3>Transcribed Text:</h3>
+        <p id="transcript">(No speech yet)</p>
+    </div>
+
+    <!-- SUMMARIZED TEXT (Panel) -->
+    <div class="panel">
+        <h3>Summary (ChatGPT):</h3>
+        <div id="summary"></div>
+        <!-- Summarise & Re-Summarise buttons -->
+        <div class="summary-buttons">
+            <button id="summariseButton">Summarise</button>
+            <button id="resummariseButton">Re-Summarise</button>
+        </div>
+    </div>
+
+    <!-- FEEDBACK (Panel) -->
+    <div class="panel">
+        <h3>Feedback</h3>
+        <button id="feedbackButton">Provide Feedback</button>
+        <p id="feedbackText">Tell us how this tool can help you more. Email us at docs.ai.feedback@gmail.com with your questions and comments. Your feedback is highly valued.</p>
+    </div>
+</div>
+
+<script>
+/**********************************************************
+ * 1) Web Speech Setup
+ **********************************************************/
+const MAX_RECORD_SECONDS = 1800; // 30 min
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognition) {
+    document.getElementById("errorContainer").textContent =
+        "Your browser does not support the Web Speech API. Use Chrome or a compatible browser.";
+    document.getElementById("startButton").style.display = "none";
+    document.getElementById("stopButton").style.display = "none";
+    document.getElementById("retakeButton").style.display = "none";
+}
+
+let recognition;
+let finalTranscript = "";
+let startTime = null;
+let timerInterval = null;
+let isRecording = false;
+
+/**********************************************************
+ * 2) Summarization with ChatGPT
+ **********************************************************/
+const OPENAI_API_KEY  = "YOUR_OPENAI_API_KEY";
+const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+const MODEL_NAME      = "gpt-3.5-turbo";
+
+/**
+ * Summarize text via ChatGPT.
+ * @param {string} inputText - The text to summarize
+ * @returns {Promise<string>} Summarized text
+ */
+async function summarizeWithChatGPT(inputText) {
+    const systemPrompt = `
+You are a helpful assistant. 
+The user is a ${selectedPosition || "User"}. 
+They want to create documentation for ${selectedPurpose || "some data product"}. 
+The text should be summarized with a formality level of ${selectedFormality || 3}.
+Please summarize the user's text accordingly.
+    `.trim();
+
+    const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: inputText }
+    ];
+
+    const response = await fetch(OPENAI_ENDPOINT, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: MODEL_NAME,
+            messages: messages,
+            max_tokens: 300,
+            temperature: 0.7
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`OpenAI request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || "(No summary returned)";
+}
+
+/**********************************************************
+ * 3) SpeechRecognition Setup
+ **********************************************************/
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+        isRecording = true;
+        document.getElementById("errorContainer").textContent = "";
+    };
+
+    recognition.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcriptPart = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcriptPart;
+            } else {
+                interim += transcriptPart;
+            }
+        }
+        document.getElementById("transcript").textContent = finalTranscript + interim;
+    };
+
+    recognition.onerror = (event) => {
+        document.getElementById("errorContainer").textContent = `Speech error: ${event.error}`;
+        stopRecording();
+    };
+
+    recognition.onend = () => {
+        // If the recognition stops automatically (silence or error),
+        // just finalize the state. We no longer auto-summarize here.
+        isRecording = false;
+        stopTimer();
+    };
+}
+
+/**********************************************************
+ * 4) Timer (Max 30 min)
+ **********************************************************/
+function startTimer() {
+    startTime = Date.now();
+    timerInterval = setInterval(() => {
+        const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+        if (elapsedSec >= MAX_RECORD_SECONDS) {
+            stopRecording();
+            return;
+        }
+        const minutes = Math.floor(elapsedSec / 60);
+        const seconds = elapsedSec % 60;
+        document.getElementById("timer").textContent =
+            `Recording: ${minutes}m ${seconds}s / 30:00`;
+    }, 1000);
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    document.getElementById("timer").textContent = "";
+}
+
+/**********************************************************
+ * 5) Start/Stop/Retake
+ **********************************************************/
+function startRecording() {
+    if (!recognition || isRecording) return;
+    finalTranscript = "";
+    document.getElementById("transcript").textContent = "(Recording...)";
+    document.getElementById("summary").textContent = "";
+    startTimer();
+    recognition.start();
+}
+
+function stopRecording() {
+    if (!recognition || !isRecording) return;
+    recognition.stop();
+    stopTimer();
+    isRecording = false;
+}
+
+/**
+ * Retake = clear transcript & summary & restart recording
+ */
+function retakeRecording() {
+    // Stop first if still recording
+    if (isRecording) {
+        stopRecording();
+    }
+    // Clear text
+    finalTranscript = "";
+    document.getElementById("transcript").textContent = "(Recording...)";
+    document.getElementById("summary").textContent = "";
+    // Restart recording
+    startRecording();
+}
+
+// Button event listeners for audio recording
+document.getElementById("startButton").addEventListener("click", startRecording);
+document.getElementById("stopButton").addEventListener("click", stopRecording);
+document.getElementById("retakeButton").addEventListener("click", retakeRecording);
+
+/**********************************************************
+ * 6) Summarise & Re-Summarise
+ **********************************************************/
+// Summarise button
+document.getElementById("summariseButton").addEventListener("click", async () => {
+    const transcript = finalTranscript.trim();
+    if (!transcript) {
+        document.getElementById("summary").textContent = "(No text to summarize)";
+        return;
+    }
+    document.getElementById("summary").textContent = "Summarizing with ChatGPT... please wait.";
+    try {
+        const summaryText = await summarizeWithChatGPT(transcript);
+        document.getElementById("summary").textContent = summaryText;
+    } catch (err) {
+        document.getElementById("summary").textContent = `Error: ${err.message}`;
+    }
+});
+
+// Re-Summarise button
+document.getElementById("resummariseButton").addEventListener("click", async () => {
+    const transcript = finalTranscript.trim();
+    if (!transcript) {
+        document.getElementById("summary").textContent = "(No text to summarize)";
+        return;
+    }
+    document.getElementById("summary").textContent = "Re-Summarizing with ChatGPT... please wait.";
+    try {
+        const summaryText = await summarizeWithChatGPT(transcript);
+        document.getElementById("summary").textContent = summaryText;
+    } catch (err) {
+        document.getElementById("summary").textContent = `Error: ${err.message}`;
+    }
+});
+
+/**********************************************************
+ * 7) Position & Purpose Buttons
+ **********************************************************/
+const positions = [
+    "Business Analyst", 
+    "Consultant", 
+    "BI Developer", 
+    "Data Engineer", 
+    "Developer"
+];
+const purposes = [
+    "Project Background and Context",
+    "Dashboard",
+    "Data Product",
+    "Data Pipeline",
+    "DAX Code",
+    "Developer Code"
+];
+
+let selectedPosition = "";
+let selectedPurpose  = "";
+
+const positionButtonsContainer = document.getElementById("positionButtons");
+positions.forEach(pos => {
+    const btn = document.createElement("button");
+    btn.textContent = pos;
+    btn.addEventListener("click", () => {
+        selectedPosition = pos;
+        highlightSelectedButton(positionButtonsContainer, btn);
+    });
+    positionButtonsContainer.appendChild(btn);
+});
+
+const purposeButtonsContainer = document.getElementById("purposeButtons");
+purposes.forEach(p => {
+    const btn = document.createElement("button");
+    btn.textContent = p;
+    btn.addEventListener("click", () => {
+        selectedPurpose = p;
+        highlightSelectedButton(purposeButtonsContainer, btn);
+    });
+    purposeButtonsContainer.appendChild(btn);
+});
+
+function highlightSelectedButton(container, selectedBtn) {
+    const allButtons = container.querySelectorAll("button");
+    allButtons.forEach(b => b.style.backgroundColor = "");
+    selectedBtn.style.backgroundColor = "#ADD8E6";
+}
+
+/**********************************************************
+ * 8) Formality Slider
+ **********************************************************/
+const formalitySlider = document.getElementById("formalitySlider");
+const formalityValueSpan = document.getElementById("formalityValue");
+let selectedFormality = 3;
+
+formalitySlider.addEventListener("input", () => {
+    selectedFormality = parseInt(formalitySlider.value, 10);
+    formalityValueSpan.textContent = selectedFormality;
+});
+
+/**********************************************************
+ * 9) Feedback panel
+ **********************************************************/
+const feedbackButton = document.getElementById("feedbackButton");
+const feedbackText   = document.getElementById("feedbackText");
+
+feedbackButton.addEventListener("click", () => {
+    feedbackText.style.display = "block";
+});
+</script>
+</body>
+</html>
